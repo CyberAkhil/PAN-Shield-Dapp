@@ -22,6 +22,7 @@ import {
 import { FormEvent, ChangeEvent } from '../types/global';
 import { registerPAN, verifyAddress, reportSuspiciousAddress } from '../utils/contract';
 import FeedbackModal from '../components/FeedbackModal';
+import VerifiedAddresses from '../components/VerifiedAddresses';
 
 type Step = 'REGISTER' | 'VERIFY' | 'REPORT';
 
@@ -95,6 +96,7 @@ const Home = () => {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const supportRef = useRef<HTMLDivElement>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [registeredPanHash, setRegisteredPanHash] = useState<string | null>(null);
 
   useEffect(() => {
     setShowAnimation(true);
@@ -213,8 +215,9 @@ const Home = () => {
     setIsLoading(true);
     try {
       console.log('Creating PAN hash...');
-      const panHash = ethers.keccak256(ethers.toUtf8Bytes(panNumber));
+      const panHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(panNumber));
       console.log('PAN hash created:', panHash);
+      setRegisteredPanHash(panHash);
 
       console.log('Calling registerPAN function...');
       const result = await registerPAN(panHash);
@@ -250,7 +253,7 @@ const Home = () => {
       return;
     }
 
-    if (!ethers.isAddress(addressToCheck)) {
+    if (!ethers.utils.isAddress(addressToCheck)) {
       showNotification('error', 'Please enter a valid Ethereum address');
       return;
     }
@@ -267,14 +270,18 @@ const Home = () => {
       console.log('Verification result:', result);
 
       if (result === true) {
-        showNotification('success', '✅ Address is safe to use');
-      } else if (result === false) {
-        showNotification('error', '⚠️ This address has been reported as suspicious');
+        showNotification('success', '✅ Address is verified and safe to use');
+      } else {
+        showNotification('error', '⚠️ Address is not verified');
       }
       setAddressToCheck('');
     } catch (error: any) {
       console.error('Error verifying address:', error);
-      showNotification('error', 'Failed to verify address. Please try again.');
+      if (error.message.includes('blacklisted')) {
+        showNotification('error', '⚠️ This address has been blacklisted');
+      } else {
+        showNotification('error', 'Failed to verify address. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -331,7 +338,7 @@ const Home = () => {
       return;
     }
 
-    if (!ethers.isAddress(addressToReport)) {
+    if (!ethers.utils.isAddress(addressToReport)) {
       showNotification('error', 'Please enter a valid Ethereum address');
       return;
     }
@@ -926,7 +933,7 @@ const Home = () => {
                     <p className="text-indigo-400 text-sm font-medium">Developed by</p>
                     <p className="text-3xl font-bold">
                       <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-                        Core Nexus
+                        GUMASTA JI
                       </span>
                     </p>
                     <div className="flex items-center space-x-2 text-sm text-gray-400">
@@ -955,6 +962,12 @@ const Home = () => {
             isOpen={isFeedbackOpen}
             onClose={() => setIsFeedbackOpen(false)}
           />
+
+          {registeredPanHash && (
+            <div className="mt-8">
+              <VerifiedAddresses panHash={registeredPanHash} />
+            </div>
+          )}
         </div>
     </div>
     </main>

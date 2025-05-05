@@ -1,6 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import fs from 'fs';
+import path from 'path';
 
-const genAI = new GoogleGenerativeAI("AIzaSyCqRstJl1t5mAnCZIyZsmRrkbxzLw_mWyo");
+// Read API key from external file
+const apiKeyPath = path.join(process.cwd(), 'utils', 'geminiAPI.txt');
+const apiKey = fs.readFileSync(apiKeyPath, 'utf8').trim();
+
+const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function getChatResponse(message: string): Promise<string> {
   try {
